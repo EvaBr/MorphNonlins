@@ -24,7 +24,7 @@ from utilities import probs2one_hot, probs2class, crop
 import os
 
 warnings.filterwarnings("ignore")
-os.chdir('MorphNonlins')
+#os.chdir('MorphNonlins')
 
 def setup(args, n_class: int) -> Tuple[Any, Any, Any, List[Callable], List[float], Callable]:
     print(">>> Setting up")
@@ -82,13 +82,13 @@ def do_epoch(mode: str, net: Any, device: Any, loader: DataLoader, epc: int,
     done = 0
     for j, data in tq_iter:
         #data = [e.to(device) for e in data]  # Move all tensors to device
-        image, target = data[:2] #image could contain multiple imgs, like for deepmedic. 
+        image, target = data[:2] #image could contain multiple imgs, like for deepmedic.
         image = [e.to(device) for e in image]
         target = target.to(device)
         usingBL = np.any([fn.name=="SurfaceLoss" for fn in loss_fns])
         assert (len(data)>2)==usingBL, (len(data), usingBL) #we also mustve got DT, to calc boundary loss
-        
-    
+
+
         B = len(image[0])
 
         # Reset gradients
@@ -98,10 +98,10 @@ def do_epoch(mode: str, net: Any, device: Any, loader: DataLoader, epc: int,
         # Forward
         pred_logits: Tensor = net(*image)
         pred_probs: Tensor = F.softmax(pred_logits, dim=1)
-        #print(f"\npred_log=({torch.min(pred_logits).item():.3f}, {torch.max(pred_logits).item():.3f}), pred_prob=({torch.min(pred_probs).item():.3f}, {torch.max(pred_probs).item():.3f})") 
+        #print(f"\npred_log=({torch.min(pred_logits).item():.3f}, {torch.max(pred_logits).item():.3f}), pred_prob=({torch.min(pred_probs).item():.3f}, {torch.max(pred_probs).item():.3f})")
         predicted_mask: Tensor = probs2one_hot(pred_probs.detach())  # Used only for dice computation
 
-        #label = list of targets/dts to use when calc. loss. so should be DT for boundary loss, and GT for else. 
+        #label = list of targets/dts to use when calc. loss. so should be DT for boundary loss, and GT for else.
         labels = [crop(data[-1].to(device), pred_logits.shape) if fn.name=="SurfaceLoss" else crop(target, pred_logits.shape) for fn in loss_fns]
         ziped = zip(loss_fns, labels, loss_weights)
         losses = [w * loss_fn(pred_probs, label) for loss_fn, label, w in ziped]
@@ -117,8 +117,8 @@ def do_epoch(mode: str, net: Any, device: Any, loader: DataLoader, epc: int,
           #  z = [x.grad.data for x in net.parameters()]
           #  ma = np.max([torch.max(zz) for zz in z])
           #  mi = np.min([torch.min(zz) for zz in z])
-          #  print(f"Grad range: {(ma, mi)}") 
-        
+          #  print(f"Grad range: {(ma, mi)}")
+
         # Compute and log metrics
         loss_log[j] = loss.detach()
 
@@ -165,7 +165,7 @@ def do_epoch(mode: str, net: Any, device: Any, loader: DataLoader, epc: int,
 def run(args: argparse.Namespace) -> None:
     n_class: int = args.n_class
     lr: float = args.l_rate
-    metric_axis: List(int) = [i for i in range(1, n_class)] #we are interested in metrics for all classes except bckg. 
+    metric_axis: List(int) = [i for i in range(1, n_class)] #we are interested in metrics for all classes except bckg.
 
 
     # Proper params
@@ -199,7 +199,7 @@ def run(args: argparse.Namespace) -> None:
         tra_loss, tra_dice, _ = do_epoch("train", net, device, train_loader, i, loss_fns,
                                                          loss_weights, n_class,
                                                          optimizer=optimizer)
-    
+
         with torch.no_grad():
             val_loss, val_dice, val_haussdorf = do_epoch("val", net, device, val_loader, i, loss_fns,
                                                                          loss_weights, n_class,
@@ -224,7 +224,7 @@ def run(args: argparse.Namespace) -> None:
         if current_dice > best_dice:
             best_epoch = i
             best_dice = current_dice
-            best_dice_per_class = val_dice.mean(axis=0) 
+            best_dice_per_class = val_dice.mean(axis=0)
             if args.compute_haussdorf:
                 best_haussdorf = val_haussdorf[:, metric_axis].mean()
                 best_haussdorf_per_class = val_haussdorf.mean(axis=0)
@@ -240,8 +240,8 @@ def run(args: argparse.Namespace) -> None:
                 print(f'> New learning Rate: {lr}')
 
     #Now we're done, let's print when the best epoch was, and what were the results there:
-    maybehaus = f", HD={best_haussdorf:.3f}{best_haussdorf_per_class.data.numpy()}" if args.compute_haussdorf else ""
-    print(f">> Training done. Best epoch: {best_epoch}\n Best val metrics: DSC={best_dice:.3f}{best_dice_per_class.data.numpy()}{maybehaus}")
+    maybehaus = f", HD={best_haussdorf:.3f}{best_haussdorf_per_class.data.cpu().numpy()}" if args.compute_haussdorf else ""
+    print(f">> Training done. Best epoch: {best_epoch}\n Best val metrics: DSC={best_dice:.3f}{best_dice_per_class.data.cpu().numpy()}{maybehaus}")
 
 
 
@@ -268,16 +268,16 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument("--weights", type=str, default='', help="Stored weights to restore")
 
-    sys.argv = ['main.py', "--datasets=data/ISLES", '--batch_size=8', '--in_memory', '--l_rate=1e-3', '--schedule', '--compute_haussdorf', 
-            '--n_epoch=2', '--workdir=results', '--csv=metrics.csv', '--n_class=2', '--channels=5', 
+    sys.argv = ['main.py', "--datasets=data/ISLES", '--batch_size=4', '--in_memory', '--l_rate=1e-3', '--schedule', '--compute_haussdorf',
+            '--n_epoch=2', '--workdir=results', '--csv=metrics.csv', '--n_class=2', '--channels=5',
             '--network=UNet', "--losses=[('GeneralizedDice', {'idc': [0, 1]}, 1)]"] #, ('SurfaceLoss', {'idc': [1]}, 0.5)]"]
 
     args = parser.parse_args()
-    
+
     print(args)
 
     return args
-   
+
 
 if __name__ == '__main__':
     run(get_args())

@@ -18,10 +18,10 @@ from utilities import class2one_hot
 
 
 
-#the args.dataset folder needs to contain TRAIN, VAL folders. Each of them should contain in_npy and gt_npy folders, containing input channels and ground truths. 
+#the args.dataset folder needs to contain TRAIN, VAL folders. Each of them should contain in_npy and gt_npy folders, containing input channels and ground truths.
 #the working of loaders depends on the network used. If UNet, it doesnt matter so much (though input imgs shouldnt be too small). For deep medic, The whole image X is
-#subsampled by factor three to be input to the second pathway, and the size of the input to the first pathway is then X-30. But X should be =-2 (mod 3). So padding with 
-#zeros is done first to get this requirements satisfied. 
+#subsampled by factor three to be input to the second pathway, and the size of the input to the first pathway is then X-30. But X should be =-2 (mod 3). So padding with
+#zeros is done first to get this requirements satisfied.
 
 def get_loaders(netname, dataset, batch_size, n_class, debug, usingBL):
     #check if appropriate folder structure exists:
@@ -40,7 +40,7 @@ def get_loaders(netname, dataset, batch_size, n_class, debug, usingBL):
     origpath = transforms.Compose([
         #lambda im: np.array(im)[np.newaxis, ...],
         lambda img: np.pad(img,[(0,0)]+[((img.shape[i]+2)%3, (img.shape[i]+2)%3) for i in range(1,len(img.shape))], mode='constant', constant_values=0),
-        lambda im: im[:, 15:-15, 15:-15], #here we assume imgs ar big enough for this. and they are 2D; channels x height x width 
+        lambda im: im[:, 15:-15, 15:-15], #here we assume imgs ar big enough for this. and they are 2D; channels x height x width
         lambda nd: torch.tensor(nd, dtype=torch.float32),
         lambda norm: (norm-torch.min(norm))/(torch.max(torch.abs(norm))+1e-10) #normalize
     ])
@@ -56,7 +56,7 @@ def get_loaders(netname, dataset, batch_size, n_class, debug, usingBL):
         lambda nd: torch.tensor(nd, dtype=torch.float32),
         lambda norm: (norm-torch.min(norm))/(torch.max(torch.abs(norm))+1e-10) #normalize
     ])
-    
+
     distancetrans = transforms.Compose([
         #lambda img: np.array(img)[np.newaxis, ...],
         lambda nd: torch.tensor(nd, dtype=torch.float64)
@@ -74,31 +74,35 @@ def get_loaders(netname, dataset, batch_size, n_class, debug, usingBL):
     val_gts = glob.glob(dataset+"/VAL/gt_npy/*")
     val_dts = glob.glob(dataset+"/VAL/dt_npy/*")
     val_dataset = MyDataset(val_files, val_gts, val_dts, transformi, n_class=n_class, debug=debug)
-    val_loader = DataLoader(val_dataset, num_workers=batch_size + 5, pin_memory=True, 
-                                batch_size=batch_size, shuffle=False, drop_last=True)
+    val_loader = DataLoader(val_dataset, num_workers=0,
+                            #num_workers=batch_size + 5,
+                            pin_memory=True,
+                            batch_size=batch_size, shuffle=False, drop_last=True)
 
     train_files = glob.glob(dataset+"/TRAIN/in_npy/*")
     train_gts = glob.glob(dataset+"/TRAIN/gt_npy/*")
     train_dts = glob.glob(dataset+"/TRAIN/dt_npy/*")
     train_dataset = MyDataset(train_files, train_gts, train_dts, transformi, n_class=n_class, debug=debug)
-    train_loader = DataLoader(train_dataset, num_workers=batch_size + 5, pin_memory=True, 
-                                batch_size=batch_size, shuffle=True, drop_last=True)
+    train_loader = DataLoader(train_dataset, num_workers=0,
+                              #num_workers=batch_size + 5,
+                              pin_memory=True,
+                              batch_size=batch_size, shuffle=True, drop_last=True)
 
     return train_loader, val_loader
 
 
 class MyDataset(Dataset):
-    def __init__(self, filenames: List[str], gtnames: List[str], dtnames: List[str], transforms: List[Callable], 
+    def __init__(self, filenames: List[str], gtnames: List[str], dtnames: List[str], transforms: List[Callable],
                      n_class: int, debug=False, quiet=True) -> None:
 
         self.filenames = filenames; self.filenames.sort() #the data files are expected to have the same names and corresponding unique IDs!!
         self.gtnames = gtnames; self.gtnames.sort()
-        self.dtnames = dtnames; self.dtnames.sort() #if dtnames empty, we assume we arent using dts. 
+        self.dtnames = dtnames; self.dtnames.sort() #if dtnames empty, we assume we arent using dts.
         if debug:
             self.filenames = self.filenames[:10]
             self.gtnames = self.gtnames[:10]
             self.dtnames = self.dtnames[:10]
-    
+
         self.transforms = transforms #contains [n transforms for inp, 1 transform for gt, 1 transform for dt]
 
 
