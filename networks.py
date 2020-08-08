@@ -66,11 +66,11 @@ class DeepMedic(nn.Module):
     def __init__(self, nin, nout):
         super().__init__()
         self.name = "DeepMedic"
-        self.path1 = nn.Sequential(convBatch(nin, 30, padding=0), convBatch(30, 30, padding=0), 
+        self.path1 = nn.Sequential(convBatch(nin, 30, padding=0), convBatch(30, 30, padding=0),
                                     convBatch(30, 40, padding=0), convBatch(40, 40, padding=0), convBatch(40, 40, padding=0), convBatch(40, 40, padding=0),
                                     convBatch(40, 50, padding=0), convBatch(50, 50, padding=0))
-        
-        self.path2 = nn.Sequential(convBatch(nin, 30, padding=0), convBatch(30, 30, padding=0), 
+
+        self.path2 = nn.Sequential(convBatch(nin, 30, padding=0), convBatch(30, 30, padding=0),
                                     convBatch(30, 40, padding=0), convBatch(40, 40, padding=0), convBatch(40, 40, padding=0), convBatch(40, 40, padding=0),
                                     convBatch(40, 50, padding=0), convBatch(50, 50, padding=0))
 
@@ -89,7 +89,3 @@ class DeepMedic(nn.Module):
         together = self.fullyconv(together)
 
         return self.final(together)
-
-
-
-    

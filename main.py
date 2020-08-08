@@ -268,8 +268,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument("--weights", type=str, default='', help="Stored weights to restore")
 
-    sys.argv = ['main.py', "--datasets=data/ISLES", '--batch_size=4', '--in_memory', '--l_rate=1e-3', '--schedule', '--compute_haussdorf',
-            '--n_epoch=2', '--workdir=results', '--csv=metrics.csv', '--n_class=2', '--channels=5',
+    sys.argv = ['main.py', "--datasets=data/ISLES", '--batch_size=2', '--in_memory', '--l_rate=1e-3', '--schedule', '--compute_haussdorf',
+            '--n_epoch=15', '--workdir=results', '--csv=metrics.csv', '--n_class=2', '--channels=5',
             '--network=UNet', "--losses=[('GeneralizedDice', {'idc': [0, 1]}, 1)]"] #, ('SurfaceLoss', {'idc': [1]}, 0.5)]"]
 
     args = parser.parse_args()
